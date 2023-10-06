@@ -4,6 +4,7 @@ from torch.utils.data import Dataset
 from torch import nn
 import torchvision
 import matplotlib.pyplot as plt
+from typing import Tuple
 
 
 class NeuralNetwork(nn.Module):
@@ -40,7 +41,30 @@ def train(dataloader, model: nn.Module, loss_fn, optimizer, device: str):
             print(f"loss: {loss:>7f} [{current:>5d}/{len(dataloader.dataset):>5d}]")
 
 
-def train_with_validation(dataloader, model: nn.Module, loss_fn, optimizer, device: str) -> None:
+def test(dataloader,
+         model: nn.Module,
+         loss_fn,
+         device: str) -> Tuple[float, float]:
+
+    initially_training = model.training
+    loss = 0
+    correct = 0
+
+    model.eval()
+
+    with torch.no_grad():
+        for x, y in dataloader:
+            x, y = x.to(device), y.to(device)
+            pred = model(x)
+            loss += loss_fn(pred, y).item()
+            correct += (pred.argmax(1) == y).type(torch.float).sum().item()
+
+    if initially_training:
+        model.train()
+
+    return loss / len(dataloader), correct / len(dataloader.dataset)
+
+
     model.train()
     running_loss = 0.0
 
