@@ -65,10 +65,25 @@ def test(dataloader,
     return loss / len(dataloader), correct / len(dataloader.dataset)
 
 
+def train_with_validation(train_dataloader,
+                          validation_dataloader,
+                          model: nn.Module,
+                          loss_fn,
+                          optimizer,
+                          device: str,
+                          writer,
+                          validate_after: int,
+                          epoch: int) -> None:
+    """
+    :param writer: TensorBoard SummaryWriter
+    :param validate_after: number of batches after which the model is validated
+    :param epoch: current epoch index, i.e. start from 0
+    :return: None
+    """
     model.train()
     running_loss = 0.0
 
-    for batch, (x, y) in enumerate(dataloader):
+    for batch, (x, y) in enumerate(train_dataloader):
         x, y = x.to(device), y.to(device)
 
         loss = loss_fn(model(x), y)
@@ -79,40 +94,14 @@ def test(dataloader,
 
         running_loss += loss.item()
 
-        if batch % 100 == 0:
-            running_validation_loss = 0.0
+        if batch % validate_after == validate_after - 1:
 
-            model.eval()
+            writer.add_scalars('Training vs. Validation Loss',
+                               {'Training': running_loss / validate_after,
+                                'Validation': test(validation_dataloader, model, loss_fn, device)[0]},
+                               epoch * len(train_dataloader) + batch)
 
-            for j, (validation_images, validation_labels) in enumerate(dataloader):
-                validation_images = validation_images.to(device)
-                validation_labels = validation_labels.to(device)
-
-                running_validation_loss += loss_fn(model(validation_images), validation_labels)
-
-            model.train()
-
-            writer.add_scalars("Training v.s. Validation Loss",
-                               {"Training"})
-
-
-
-def test(dataloader, model: nn.Module, loss_fn, device: str):
-    model.eval()
-    test_loss = 0
-    correct = 0
-
-    with torch.no_grad():
-        for X, y in dataloader:
-            X, y = X.to(device), y.to(device)
-            pred = model(X)
-            test_loss += loss_fn(pred, y).item()
-            correct += (pred.argmax(1) == y).type(torch.float).sum().item()
-
-    test_loss /= len(dataloader)
-    correct /= len(dataloader.dataset)
-
-    print(f"Test Error: \n Accuracy: {(100 * correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
+            running_loss = 0.0
 
 
 def peek_dataset(dataset, classes, rows: int, columns: int):
