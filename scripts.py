@@ -73,7 +73,8 @@ def train_with_validation(train_dataloader,
                           device: str,
                           writer,
                           validate_after: int,
-                          epoch: int) -> None:
+                          epoch: int,
+                          plot_title: str) -> None:
     """
     :param writer: TensorBoard SummaryWriter
     :param validate_after: number of batches after which the model is validated
@@ -96,7 +97,7 @@ def train_with_validation(train_dataloader,
 
         if batch % validate_after == validate_after - 1:
 
-            writer.add_scalars('Training vs. Validation Loss',
+            writer.add_scalars(plot_title,
                                {'Training': running_loss / validate_after,
                                 'Validation': test(validation_dataloader, model, loss_fn, device)[0]},
                                epoch * len(train_dataloader) + batch)
